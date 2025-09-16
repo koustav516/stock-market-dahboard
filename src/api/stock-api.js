@@ -19,28 +19,7 @@ export const fetchRecentStockPrice = async (stockSymbol) => {
     return await fetchResult(url);
 };
 
-// export const fetchHistoricalData = async (
-//     stockSymbol,
-//     resolution,
-//     from,
-//     to
-// ) => {
-//     const url = `${basePath}/stock/candle?symbol=${stockSymbol}&resolution=${resolution}&from=${from}&to=${to}&token=${API_KEY}`;
-
-//     const data = await fetchResult(url);
-//     if (data.s !== "ok") {
-//         return mockHistoricalData;
-//     }
-
-//     return data;
-// };
-
-export const fetchHistoricalData = async (
-    stockSymbol,
-    resolution,
-    from,
-    to
-) => {
+export const fetchHistoricalData = async () => {
     return mockHistoricalData;
 };
 

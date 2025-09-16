@@ -22,6 +22,9 @@ import { fetchHistoricalData } from "../api/stock-api";
 const Chart = () => {
     const [data, setData] = useState([]);
     const [filter, setFilter] = useState("1W");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
     const { darkMode } = useContext(ThemeContext);
     const { stockSymbol } = useContext(StockContext);
 
@@ -35,42 +38,44 @@ const Chart = () => {
     };
 
     useEffect(() => {
-        const getDateRange = () => {
-            const { days, weeks, months, years } = chartConfig[filter];
+        let cancelled = false;
+
+        async function updateChartData() {
+            setLoading(true);
+            setError(null);
+
+            const cfg = chartConfig[filter] ||
+                chartConfig["1M"] || { days: 30, resolution: "D" };
+
             const endDate = new Date();
-            const startDate = createDate(
-                endDate,
-                -days,
-                -weeks,
-                -months,
-                -years
-            );
-            const startTimeStampUnix = convertDateToUnixTimeStamp(startDate);
-            const endTimeStampUnix = convertDateToUnixTimeStamp(endDate);
+            const startDate = createDate(endDate, -cfg.days, 0, 0, 0);
+            const from = convertDateToUnixTimeStamp(startDate);
+            const to = convertDateToUnixTimeStamp(endDate);
 
-            return {
-                startTimeStampUnix,
-                endTimeStampUnix,
-            };
-        };
-
-        const updateChartData = async () => {
             try {
-                const { startTimeStampUnix, endTimeStampUnix } = getDateRange();
-                const resolution = chartConfig[filter].resolution;
-                const result = await fetchHistoricalData(
+                const raw = await fetchHistoricalData(
                     stockSymbol,
-                    resolution,
-                    startTimeStampUnix,
-                    endTimeStampUnix
+                    cfg.resolution,
+                    from,
+                    to
                 );
-                setData(formData(result));
+                if (cancelled) return;
+                const formatted = formData(raw);
+                setData(formatted);
             } catch (err) {
-                setData([]);
-                console.log(err);
+                if (cancelled) return;
+                console.error("Error loading chart data:", err);
+                setError(err?.message || "Failed to load chart data");
+            } finally {
+                if (!cancelled) setLoading(false);
             }
+        }
+
+        if (stockSymbol) updateChartData();
+
+        return () => {
+            cancelled = true;
         };
-        updateChartData();
     }, [stockSymbol, filter]);
 
     return (
@@ -90,6 +95,16 @@ const Chart = () => {
                     );
                 })}
             </ul>
+            {loading && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60">
+                    <div className="text-sm">Loading chart…</div>
+                </div>
+            )}
+            {error && (
+                <div className="absolute top-10 right-2 z-50 text-xs text-red-600">
+                    {error}
+                </div>
+            )}
             <ResponsiveContainer>
                 <AreaChart data={data}>
                     <defs>
