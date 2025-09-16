@@ -1,8 +1,11 @@
-import React, { useState, useContext } from "react";
-import { mockHistoricalData } from "../constants/mock";
+import React, { useState, useContext, useEffect } from "react";
 import Card from "./Card";
 import ThemeContext from "../context/ThemeContext";
-import { convertUnixTimeStampToDate } from "../helpers/date-helper";
+import {
+    convertDateToUnixTimeStamp,
+    convertUnixTimeStampToDate,
+    createDate,
+} from "../helpers/date-helper";
 import {
     Area,
     AreaChart,
@@ -13,13 +16,16 @@ import {
 } from "recharts";
 import { chartConfig } from "../constants/config";
 import ChartFilter from "./ChartFilter";
+import StockContext from "../context/StockContext";
+import { fetchHistoricalData } from "../api/stock-api";
 
 const Chart = () => {
-    const [data, setData] = useState(mockHistoricalData);
+    const [data, setData] = useState([]);
     const [filter, setFilter] = useState("1W");
     const { darkMode } = useContext(ThemeContext);
+    const { stockSymbol } = useContext(StockContext);
 
-    const formData = () => {
+    const formData = (data) => {
         return data.c.map((item, index) => {
             return {
                 value: item.toFixed(2),
@@ -27,6 +33,45 @@ const Chart = () => {
             };
         });
     };
+
+    useEffect(() => {
+        const getDateRange = () => {
+            const { days, weeks, months, years } = chartConfig[filter];
+            const endDate = new Date();
+            const startDate = createDate(
+                endDate,
+                -days,
+                -weeks,
+                -months,
+                -years
+            );
+            const startTimeStampUnix = convertDateToUnixTimeStamp(startDate);
+            const endTimeStampUnix = convertDateToUnixTimeStamp(endDate);
+
+            return {
+                startTimeStampUnix,
+                endTimeStampUnix,
+            };
+        };
+
+        const updateChartData = async () => {
+            try {
+                const { startTimeStampUnix, endTimeStampUnix } = getDateRange();
+                const resolution = chartConfig[filter].resolution;
+                const result = await fetchHistoricalData(
+                    stockSymbol,
+                    resolution,
+                    startTimeStampUnix,
+                    endTimeStampUnix
+                );
+                setData(formData(result));
+            } catch (err) {
+                setData([]);
+                console.log(err);
+            }
+        };
+        updateChartData();
+    }, [stockSymbol, filter]);
 
     return (
         <Card>
@@ -46,7 +91,7 @@ const Chart = () => {
                 })}
             </ul>
             <ResponsiveContainer>
-                <AreaChart data={formData(data)}>
+                <AreaChart data={data}>
                     <defs>
                         <linearGradient
                             id="chartColor"
