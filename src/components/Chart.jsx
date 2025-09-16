@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { mockHistoricalData } from "../constants/mock";
 import Card from "./Card";
+import ThemeContext from "../context/ThemeContext";
 import { convertUnixTimeStampToDate } from "../helpers/date-helper";
 import {
     Area,
@@ -16,6 +17,7 @@ import ChartFilter from "./ChartFilter";
 const Chart = () => {
     const [data, setData] = useState(mockHistoricalData);
     const [filter, setFilter] = useState("1W");
+    const { darkMode } = useContext(ThemeContext);
 
     const formData = () => {
         return data.c.map((item, index) => {
@@ -55,12 +57,16 @@ const Chart = () => {
                         >
                             <stop
                                 offset="5%"
-                                stopColor="rgb(199,210,254)"
+                                stopColor={
+                                    darkMode ? "#312e81" : "rgb(199 210 254)"
+                                }
                                 stopOpacity={0.8}
                             />
                             <stop
                                 offset="95%"
-                                stopColor="rgb(199,210,254)"
+                                stopColor={
+                                    darkMode ? "#312e81" : "rgb(199 210 254)"
+                                }
                                 stopOpacity={0}
                             />
                         </linearGradient>
@@ -73,7 +79,12 @@ const Chart = () => {
                         strokeWidth={0.5}
                         fill="url(#chartColor)"
                     />
-                    <Tooltip />
+                    <Tooltip
+                        contentStyle={
+                            darkMode ? { backgroundColor: "#111827" } : null
+                        }
+                        itemStyle={darkMode ? { color: "#818cf8" } : null}
+                    />
                     <XAxis dataKey={"date"} />
                     <YAxis domain={["dataMin", "dataMax"]} />
                 </AreaChart>
